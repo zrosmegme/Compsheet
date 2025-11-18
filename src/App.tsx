@@ -65,15 +65,20 @@ function App() {
       return activeCriteria.every(c => {
         const val = row[c.column];
 
-        // Skip if value is missing/empty
-        if (val === undefined || val === null || val === '') {
-          return false;
-        }
-
         // Determine if we have numeric or text filters
         const hasMinFilter = c.min !== undefined && c.min !== '';
         const hasMaxFilter = c.max !== undefined && c.max !== '';
         const hasTextFilter = c.text !== undefined && c.text.trim() !== '';
+
+        // If no filters are set on this criterion, pass (shouldn't happen but safety check)
+        if (!hasMinFilter && !hasMaxFilter && !hasTextFilter) {
+          return true;
+        }
+
+        // If value is empty and we have filters, exclude it
+        if (val === undefined || val === null || val === '') {
+          return false;
+        }
 
         // If we have numeric filters (min or max), treat as numeric comparison
         if (hasMinFilter || hasMaxFilter) {
@@ -108,11 +113,6 @@ function App() {
           if (!strVal.includes(searchStr)) {
             return false;
           }
-        }
-
-        // If we got here with no filters defined, pass
-        if (!hasMinFilter && !hasMaxFilter && !hasTextFilter) {
-          return true;
         }
 
         return true;
