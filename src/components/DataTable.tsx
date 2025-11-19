@@ -110,6 +110,68 @@ export const DataTable: React.FC<DataTableProps> = ({ data, visibleColumns }) =>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
+                        {/* Summary Rows - Average and Median */}
+                        {data.length > 0 && (() => {
+                            // Calculate averages and medians for numeric columns
+                            const averages: Record<string, any> = { Ticker: 'AVERAGE', 'Long Name': '' };
+                            const medians: Record<string, any> = { Ticker: 'MEDIAN', 'Long Name': '' };
+
+                            allColumns.forEach(col => {
+                                if (col === 'Ticker' || col === 'Long Name') return;
+
+                                const values = data
+                                    .map(row => Number(row[col]))
+                                    .filter(v => !isNaN(v));
+
+                                if (values.length > 0) {
+                                    // Average
+                                    const sum = values.reduce((a, b) => a + b, 0);
+                                    averages[col] = sum / values.length;
+
+                                    // Median
+                                    const sorted = [...values].sort((a, b) => a - b);
+                                    const mid = Math.floor(sorted.length / 2);
+                                    medians[col] = sorted.length % 2 !== 0
+                                        ? sorted[mid]
+                                        : (sorted[mid - 1] + sorted[mid]) / 2;
+                                }
+                            });
+
+                            return (
+                                <>
+                                    <tr className="bg-slate-800/50 font-medium border-b border-slate-700">
+                                        {allColumns.map((col) => {
+                                            const format = formatMap[col] || 'text';
+                                            const displayValue = col === 'Ticker' || col === 'Long Name'
+                                                ? averages[col]
+                                                : formatValue(averages[col] ?? '', format);
+
+                                            return (
+                                                <td key={`avg-${col}`} className="px-6 py-4 whitespace-nowrap text-emerald-400">
+                                                    {displayValue}
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                    <tr className="bg-slate-800/50 font-medium border-b-2 border-slate-700">
+                                        {allColumns.map((col) => {
+                                            const format = formatMap[col] || 'text';
+                                            const displayValue = col === 'Ticker' || col === 'Long Name'
+                                                ? medians[col]
+                                                : formatValue(medians[col] ?? '', format);
+
+                                            return (
+                                                <td key={`med-${col}`} className="px-6 py-4 whitespace-nowrap text-emerald-400">
+                                                    {displayValue}
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                </>
+                            );
+                        })()}
+
+                        {/* Data Rows */}
                         {sortedData.map((row, idx) => (
                             <tr key={idx} className="hover:bg-slate-800/50 transition-colors">
                                 {allColumns.map((col) => {
