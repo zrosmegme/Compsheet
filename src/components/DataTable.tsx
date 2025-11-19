@@ -173,7 +173,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, visibleColumns }) =>
 
                         {/* Data Rows */}
                         {sortedData.map((row, idx) => (
-                            <tr key={idx} className="hover:bg-slate-800/50 transition-colors">
+                            <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
                                 {allColumns.map((col) => {
                                     const rawValue = row[col];
                                     const format = formatMap[col] || 'text';
