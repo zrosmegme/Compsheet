@@ -9,18 +9,23 @@ import { AnalysisPage } from './pages/AnalysisPage';
 import type { Criterion, DataRow } from './types';
 import { RefreshCw } from 'lucide-react';
 import { detectColumnFormat } from './lib/formatUtils';
+import defaultData from './data/default-data.json';
 
 const STORAGE_KEY_CRITERIA = 'compsheet_criteria';
 const STORAGE_KEY_DATA = 'compsheet_data';
 
 function App() {
   const [data, setData] = useState<DataRow[]>(() => {
-    // Load saved data from localStorage on mount
+    // Load saved data from localStorage on mount, or use default data
     try {
       const saved = localStorage.getItem(STORAGE_KEY_DATA);
-      return saved ? JSON.parse(saved) : [];
+      if (saved) {
+        return JSON.parse(saved);
+      }
+      // If no saved data, use the default dataset
+      return defaultData as DataRow[];
     } catch {
-      return [];
+      return defaultData as DataRow[];
     }
   });
 
