@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, Table2, LayoutDashboard } from 'lucide-react';
+import { BarChart3, Table2, LayoutDashboard, LineChart } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface NavItem {
@@ -11,6 +11,7 @@ interface NavItem {
 const navItems: NavItem[] = [
     { path: '/', label: 'Filtered Data', icon: LayoutDashboard },
     { path: '/charts', label: 'Charts', icon: BarChart3 },
+    { path: '/analysis', label: 'Analysis', icon: LineChart },
     { path: '/data', label: 'Raw Data', icon: Table2 },
 ];
 

@@ -1,10 +1,11 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { FileUpload } from './components/FileUpload';
 import { Navigation } from './components/Navigation';
 import { OverviewPage } from './pages/OverviewPage';
 import { ChartsPage } from './pages/ChartsPage';
 import { DataPage } from './pages/DataPage';
+import { AnalysisPage } from './pages/AnalysisPage';
 import type { Criterion, DataRow } from './types';
 import { RefreshCw } from 'lucide-react';
 
@@ -125,13 +126,11 @@ function App() {
   const handleDataLoaded = (newData: DataRow[]) => {
     setData(newData);
     // Keep existing criteria when new data is loaded
-    // This allows users to apply the same filters to new data
   };
 
   const handleReset = () => {
     setData([]);
     setCriteria([]);
-    // Clear localStorage
     try {
       localStorage.removeItem(STORAGE_KEY_DATA);
       localStorage.removeItem(STORAGE_KEY_CRITERIA);
@@ -140,10 +139,10 @@ function App() {
     }
   };
 
-  // Upload screen when no data
-  if (data.length === 0) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-slate-200 p-8 font-sans selection:bg-accent/30">
+  // Helper to protect routes that need data
+  const RequireData = ({ children }: { children: React.ReactElement }) => {
+    if (data.length === 0) {
+      return (
         <div className="max-w-xl mx-auto mt-20">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-3">
@@ -153,11 +152,11 @@ function App() {
           </div>
           <FileUpload onDataLoaded={handleDataLoaded} />
         </div>
-      </div>
-    );
-  }
+      );
+    }
+    return children;
+  };
 
-  // Main app with navigation
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-accent/30 flex">
@@ -167,57 +166,82 @@ function App() {
         {/* Main Content Area */}
         <div className="flex-1 p-8">
           <div className="max-w-7xl mx-auto space-y-6">
-            {/* Header */}
-            <header className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-100">
-                  {data.length.toLocaleString()} Companies Loaded
-                </h2>
-                <p className="text-sm text-slate-500">
-                  {filteredData.length.toLocaleString()} matching current filters
-                </p>
-              </div>
-              <button
-                onClick={handleReset}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-              >
-                <RefreshCw className="w-4 h-4" />
-                New Upload
-              </button>
-            </header>
+            {/* Header - Only show if we have data or on specific pages? 
+                Actually, let's show header always but modify content based on context.
+                For now, I'll keep it simple. If no data, the header might look empty.
+            */}
+            {data.length > 0 && (
+              <header className="flex items-center justify-between pb-4 border-b border-slate-800">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-100">
+                    {data.length.toLocaleString()} Companies Loaded
+                  </h2>
+                  <p className="text-sm text-slate-500">
+                    {filteredData.length.toLocaleString()} matching current filters
+                  </p>
+                </div>
+                <button
+                  onClick={handleReset}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  New Upload
+                </button>
+              </header>
+            )}
 
             {/* Routes */}
             <Routes>
               <Route
                 path="/"
                 element={
-                  <OverviewPage
-                    data={data}
-                    filteredData={filteredData}
-                    criteria={criteria}
-                    columns={columns}
-                    onUpdateCriteria={setCriteria}
-                  />
+                  <RequireData>
+                    <OverviewPage
+                      data={data}
+                      filteredData={filteredData}
+                      criteria={criteria}
+                      columns={columns}
+                      onUpdateCriteria={setCriteria}
+                    />
+                  </RequireData>
                 }
               />
               <Route
                 path="/charts"
                 element={
-                  <ChartsPage
-                    data={filteredData}
-                    fullData={data}
-                    columns={columns}
-                    criteria={criteria}
-                    onUpdateCriteria={setCriteria}
-                  />
+                  <RequireData>
+                    <ChartsPage
+                      data={filteredData}
+                      fullData={data}
+                      columns={columns}
+                      criteria={criteria}
+                      onUpdateCriteria={setCriteria}
+                    />
+                  </RequireData>
                 }
               />
               <Route
                 path="/data"
                 element={
-                  <DataPage
-                    data={data}
-                  />
+                  <RequireData>
+                    <DataPage
+                      data={data}
+                    />
+                  </RequireData>
+                }
+              />
+              <Route
+                path="/analysis"
+                element={
+                  <RequireData>
+                    <AnalysisPage
+                      data={data}
+                      filteredData={filteredData}
+                      criteria={criteria}
+                      columns={columns}
+                      onUpdateCriteria={setCriteria}
+                    />
+                  </RequireData>
                 }
               />
               <Route path="*" element={<Navigate to="/" replace />} />

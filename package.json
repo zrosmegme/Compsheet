@@ -18,6 +18,7 @@
     "react-router-dom": "^7.9.6",
     "recharts": "^3.4.1",
     "tailwind-merge": "^3.4.0",
+    "technicalindicators": "^3.1.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

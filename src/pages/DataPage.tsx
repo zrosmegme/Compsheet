@@ -1,20 +1,13 @@
 import { DataTable } from '../components/DataTable';
 import type { DataRow } from '../types';
+import { DEFAULT_COLUMNS } from '../lib/constants';
 
 interface DataPageProps {
     data: DataRow[];
 }
 
 export function DataPage({ data }: DataPageProps) {
-    const rawDataColumns = [
-        'Market Cap',
-        'FTM Revenue',
-        'MRQ Revenue Growth',
-        'FTM Revenue Growth',
-        'FTM FCF Margin',
-        'EV/Rev FTM',
-        'EV/uFCF FTM'
-    ];
+    const rawDataColumns = DEFAULT_COLUMNS;
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

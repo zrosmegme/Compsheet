@@ -65,17 +65,17 @@ export const formatValue = (value: any, format: string): string => {
             } else if (numValue >= 1000) {
                 return '$' + numValue.toLocaleString(undefined, { maximumFractionDigits: 1 }) + 'M';
             }
-            return '$' + numValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return '$' + numValue.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
         case 'decimal':
             if (isNaN(numValue)) return String(value);
-            // For multiples, show 1-2 decimal places with commas
+            // For multiples, show 1 decimal place with commas
             if (numValue >= 100) {
                 return numValue.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + 'x';
             } else if (numValue >= 10) {
                 return numValue.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + 'x';
             }
-            return numValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'x';
+            return numValue.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + 'x';
 
         case 'number':
             if (isNaN(numValue)) return String(value);

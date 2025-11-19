@@ -1,6 +1,7 @@
 import { FilterBar } from '../components/FilterBar';
 import { DataTable } from '../components/DataTable';
 import type { DataRow, Criterion } from '../types';
+import { DEFAULT_COLUMNS } from '../lib/constants';
 
 interface OverviewPageProps {
     data: DataRow[];
@@ -17,7 +18,10 @@ export function OverviewPage({
     columns,
     onUpdateCriteria
 }: OverviewPageProps) {
-
+    // Show default columns plus any columns from active criteria
+    const activeCriteria = criteria.filter(c => c.active);
+    const criteriaColumns = activeCriteria.map(c => c.column);
+    const visibleColumns = Array.from(new Set([...DEFAULT_COLUMNS, ...criteriaColumns]));
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -42,7 +46,7 @@ export function OverviewPage({
                 </div>
                 <DataTable
                     data={filteredData}
-                    visibleColumns={criteria.filter(c => c.active).map(c => c.column)}
+                    visibleColumns={visibleColumns}
                 />
             </div>
         </div>

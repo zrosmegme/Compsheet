@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Filter } from 'lucide-react';
+import { ChevronDown, ChevronUp, Filter, Plus } from 'lucide-react';
 import { CriteriaPanel } from './CriteriaPanel';
 import type { Criterion } from '../types';
 import { cn } from '../lib/utils';
@@ -33,12 +33,23 @@ export function FilterBar({ criteria, columns, data, onUpdateCriteria }: FilterB
 
     const activeCriteriaCount = criteria.filter(c => c.active).length;
 
+    const addCriterion = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent toggling collapse
+        const newCriterion: Criterion = {
+            id: Math.random().toString(36).substr(2, 9),
+            column: columns[0] || '',
+            active: true,
+        };
+        onUpdateCriteria([...criteria, newCriterion]);
+        setIsCollapsed(false); // Auto-expand when adding
+    };
+
     return (
         <div className="bg-slate-900/50 rounded-xl border border-slate-800 overflow-hidden backdrop-blur-sm mb-6">
             {/* Header - Always Visible */}
-            <button
+            <div
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-800/50 transition-colors"
+                className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-800/50 transition-colors cursor-pointer"
             >
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-accent/10 rounded-lg">
@@ -51,17 +62,23 @@ export function FilterBar({ criteria, columns, data, onUpdateCriteria }: FilterB
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 text-slate-400">
-                    <span className="text-sm">
-                        {isCollapsed ? 'Expand' : 'Collapse'}
-                    </span>
-                    {isCollapsed ? (
-                        <ChevronDown className="w-5 h-5" />
-                    ) : (
-                        <ChevronUp className="w-5 h-5" />
-                    )}
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={addCriterion}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-accent bg-accent/10 hover:bg-accent/20 rounded-lg transition-colors border border-accent/20"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Filter
+                    </button>
+                    <div className="flex items-center gap-2 text-slate-400 pl-3 border-l border-slate-700">
+                        {isCollapsed ? (
+                            <ChevronDown className="w-5 h-5" />
+                        ) : (
+                            <ChevronUp className="w-5 h-5" />
+                        )}
+                    </div>
                 </div>
-            </button>
+            </div>
 
             {/* Collapsible Content */}
             <div
