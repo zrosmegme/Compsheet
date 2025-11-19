@@ -85,7 +85,14 @@ function App() {
 
         // Check numeric filters (min/max) if present
         if (hasMinFilter || hasMaxFilter) {
-          const numVal = Number(val);
+          let numVal = Number(val);
+
+          // Handle formatted strings (e.g. "$1,000", "50%", "100M") by stripping non-numeric chars
+          if (isNaN(numVal) && typeof val === 'string') {
+            // Keep only digits, decimal point, and minus sign
+            const clean = val.replace(/[^0-9.\-]/g, '');
+            numVal = Number(clean);
+          }
 
           // If value can't be parsed as number, fail this criterion
           if (isNaN(numVal)) {
@@ -94,7 +101,12 @@ function App() {
 
           // Check min boundary
           if (hasMinFilter) {
-            const min = Number(c.min);
+            let min = Number(c.min);
+            if (isNaN(min) && typeof c.min === 'string') {
+              const cleanMin = c.min.replace(/[^0-9.\-]/g, '');
+              min = Number(cleanMin);
+            }
+
             if (isNaN(min) || numVal < min) {
               return false;
             }
@@ -102,7 +114,12 @@ function App() {
 
           // Check max boundary
           if (hasMaxFilter) {
-            const max = Number(c.max);
+            let max = Number(c.max);
+            if (isNaN(max) && typeof c.max === 'string') {
+              const cleanMax = c.max.replace(/[^0-9.\-]/g, '');
+              max = Number(cleanMax);
+            }
+
             if (isNaN(max) || numVal > max) {
               return false;
             }

@@ -38,7 +38,7 @@ export function FilterBar({ criteria, columns, data, onUpdateCriteria }: FilterB
         const newCriterion: Criterion = {
             id: Math.random().toString(36).substr(2, 9),
             column: columns[0] || '',
-            active: true,
+            active: false,
         };
         onUpdateCriteria([...criteria, newCriterion]);
         setIsCollapsed(false); // Auto-expand when adding
