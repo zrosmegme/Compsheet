@@ -21,8 +21,21 @@ if (!workbook.SheetNames.includes(sheetName)) {
 
 const worksheet = workbook.Sheets[sheetName];
 
-// Convert to JSON
-const data = XLSX.utils.sheet_to_json(worksheet);
+// Convert to JSON - the sheet already has headers in the first row
+const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+// First row contains the actual column names
+const headers = rawData[0];
+const dataRows = rawData.slice(1);
+
+// Convert to proper JSON format with column names as keys
+const data = dataRows.map(row => {
+    const obj = {};
+    headers.forEach((header, index) => {
+        obj[header] = row[index];
+    });
+    return obj;
+});
 
 // Create the data directory if it doesn't exist
 const dataDir = path.join(__dirname, '..', 'src', 'data');
@@ -36,3 +49,4 @@ fs.writeFileSync(outputPath, JSON.stringify(data, null, 2));
 
 console.log(`✅ Converted "${sheetName}" to JSON: ${data.length} rows`);
 console.log(`📁 Saved to: ${outputPath}`);
+console.log(`📋 Columns: ${headers.join(', ')}`);
