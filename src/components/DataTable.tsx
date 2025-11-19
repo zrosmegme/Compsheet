@@ -139,7 +139,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, visibleColumns }) =>
 
                             return (
                                 <>
-                                    <tr className="bg-slate-800/70 font-medium border-b border-slate-700/50">
+                                    <tr className="bg-slate-800 font-medium border-b border-slate-700/50">
                                         {allColumns.map((col) => {
                                             const format = formatMap[col] || 'text';
                                             const displayValue = col === 'Ticker' || col === 'Long Name'
@@ -153,7 +153,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, visibleColumns }) =>
                                             );
                                         })}
                                     </tr>
-                                    <tr className="bg-slate-800/50 font-medium border-b-4 border-accent/30">
+                                    <tr className="bg-slate-700/80 font-medium border-b-4 border-accent/30">
                                         {allColumns.map((col) => {
                                             const format = formatMap[col] || 'text';
                                             const displayValue = col === 'Ticker' || col === 'Long Name'
@@ -173,7 +173,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, visibleColumns }) =>
 
                         {/* Data Rows */}
                         {sortedData.map((row, idx) => (
-                            <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
+                            <tr key={idx} className="bg-transparent hover:bg-slate-900/30 transition-colors">
                                 {allColumns.map((col) => {
                                     const rawValue = row[col];
                                     const format = formatMap[col] || 'text';
