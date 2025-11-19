@@ -49,6 +49,7 @@ export function AnalysisPage({
                     searchInput: parsed.searchInput || '',
                     compTickers: parsed.compTickers || [],
                     timeFilter: parsed.timeFilter || '1y',
+                    includeFiltered: parsed.includeFiltered || false,
                 };
             }
         } catch {
@@ -59,6 +60,7 @@ export function AnalysisPage({
             searchInput: '',
             compTickers: [],
             timeFilter: '1y',
+            includeFiltered: false,
         };
     };
 
@@ -78,6 +80,7 @@ export function AnalysisPage({
     // State for Comparables
     const [compInput, setCompInput] = useState('');
     const [compTickers, setCompTickers] = useState<string[]>(savedState.compTickers);
+    const [includeFiltered, setIncludeFiltered] = useState(savedState.includeFiltered || false);
 
     // Derived data for autocomplete/validation
     const availableTickers = useMemo(() => {
@@ -100,11 +103,12 @@ export function AnalysisPage({
                 searchInput,
                 compTickers,
                 timeFilter,
+                includeFiltered,
             }));
         } catch (error) {
             console.error('Failed to save analysis state:', error);
         }
-    }, [selectedTicker, searchInput, compTickers, timeFilter]);
+    }, [selectedTicker, searchInput, compTickers, timeFilter, includeFiltered]);
 
     // Close suggestions when clicking outside
     useEffect(() => {
@@ -176,24 +180,27 @@ export function AnalysisPage({
         setCompTickers(prev => prev.filter(t => t !== ticker));
     };
 
-    const handleAddFiltered = () => {
-        const filteredTickers = filteredData
-            .map(row => row['Ticker']?.toString().toUpperCase())
-            .filter(t => t && !compTickers.includes(t));
-
-        if (filteredTickers.length > 0) {
-            setCompTickers(prev => [...prev, ...filteredTickers]);
-        }
-    };
-
     // Calculate Comparable Data from Uploaded Data
     // Only show comparable companies (exclude the selected ticker)
     const comparableRows = useMemo(() => {
+        // Start with manually added tickers
+        const allTickers = new Set(compTickers);
+
+        // If dynamic sync is enabled, add all filtered tickers
+        if (includeFiltered) {
+            filteredData.forEach(row => {
+                const t = row['Ticker']?.toString().toUpperCase();
+                if (t) allTickers.add(t);
+            });
+        }
+
         return data.filter(row => {
             const ticker = row['Ticker']?.toString().toUpperCase();
-            return ticker && compTickers.includes(ticker);
+            // Exclude the selected ticker itself from comparables
+            if (ticker === selectedTicker) return false;
+            return ticker && allTickers.has(ticker);
         });
-    }, [data, compTickers]);
+    }, [data, compTickers, includeFiltered, filteredData, selectedTicker]);
 
     // Get the selected company row (shown separately at the top)
     const selectedCompanyRow = useMemo(() => {
@@ -539,16 +546,25 @@ export function AnalysisPage({
                         </div>
                     </form>
 
-                    {/* Add Filtered Data Button */}
+                    {/* Add Filtered Data Toggle */}
                     <div className="mt-4 pt-4 border-t border-slate-800">
-                        <button
-                            onClick={handleAddFiltered}
-                            disabled={filteredData.length === 0}
-                            className="flex items-center gap-2 text-sm text-accent hover:text-accent/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Add all {filteredData.length} filtered companies to comparables
-                        </button>
+                        <label className="flex items-center gap-3 cursor-pointer group">
+                            <div className="relative">
+                                <input
+                                    type="checkbox"
+                                    checked={includeFiltered}
+                                    onChange={(e) => setIncludeFiltered(e.target.checked)}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                            </div>
+                            <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">
+                                Dynamically include all {filteredData.length} filtered companies
+                            </span>
+                        </label>
+                        <p className="mt-1 text-xs text-slate-500 pl-14">
+                            If enabled, the comparables table will automatically update when you change filters.
+                        </p>
                     </div>
 
                     {/* Active Tags */}
