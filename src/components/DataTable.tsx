@@ -153,7 +153,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, visibleColumns }) =>
                                             );
                                         })}
                                     </tr>
-                                    <tr className="bg-slate-800/50 font-medium border-b-2 border-slate-700">
+                                    <tr className="bg-slate-800/50 font-medium border-b-4 border-accent/30">
                                         {allColumns.map((col) => {
                                             const format = formatMap[col] || 'text';
                                             const displayValue = col === 'Ticker' || col === 'Long Name'
