@@ -139,7 +139,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, visibleColumns }) =>
 
                             return (
                                 <>
-                                    <tr className="bg-slate-800/50 font-medium border-b border-slate-700">
+                                    <tr className="bg-slate-800/70 font-medium border-b border-slate-700/50">
                                         {allColumns.map((col) => {
                                             const format = formatMap[col] || 'text';
                                             const displayValue = col === 'Ticker' || col === 'Long Name'
@@ -147,7 +147,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, visibleColumns }) =>
                                                 : formatValue(averages[col] ?? '', format);
 
                                             return (
-                                                <td key={`avg-${col}`} className="px-6 py-4 whitespace-nowrap text-emerald-400">
+                                                <td key={`avg-${col}`} className="px-6 py-4 whitespace-nowrap text-emerald-400 font-semibold">
                                                     {displayValue}
                                                 </td>
                                             );
@@ -161,7 +161,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, visibleColumns }) =>
                                                 : formatValue(medians[col] ?? '', format);
 
                                             return (
-                                                <td key={`med-${col}`} className="px-6 py-4 whitespace-nowrap text-emerald-400">
+                                                <td key={`med-${col}`} className="px-6 py-4 whitespace-nowrap text-emerald-400 font-semibold">
                                                     {displayValue}
                                                 </td>
                                             );
