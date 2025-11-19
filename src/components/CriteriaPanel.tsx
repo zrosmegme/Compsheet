@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Plus, Filter } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import type { Criterion } from '../types';
 import { cn } from '../lib/utils';
 
@@ -52,9 +52,20 @@ export const CriteriaPanel: React.FC<CriteriaPanelProps> = ({ criteria, columns,
     };
 
     const updateCriterion = (id: string, field: keyof Criterion, value: any) => {
-        const updated = criteria.map(c =>
-            c.id === id ? { ...c, [field]: value } : c
-        );
+        const updated = criteria.map(c => {
+            if (c.id === id) {
+                const updatedCriterion = { ...c, [field]: value };
+
+                // If changing column to a non-numeric one, clear min/max values
+                if (field === 'column' && !isNumericColumn(value, data)) {
+                    updatedCriterion.min = undefined;
+                    updatedCriterion.max = undefined;
+                }
+
+                return updatedCriterion;
+            }
+            return c;
+        });
         onUpdateCriteria(updated);
     };
 
@@ -63,14 +74,8 @@ export const CriteriaPanel: React.FC<CriteriaPanelProps> = ({ criteria, columns,
     };
 
     return (
-        <div className="bg-surface rounded-xl border border-slate-700/50 p-6 shadow-xl backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                    <div className="p-2 bg-accent/10 rounded-lg">
-                        <Filter className="w-5 h-5 text-accent" />
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-100">Search Criteria</h2>
-                </div>
+        <div>
+            <div className="flex items-center justify-between mb-4">
                 <button
                     onClick={addCriterion}
                     className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-accent hover:bg-accent/10 rounded-lg transition-colors"
@@ -142,9 +147,8 @@ export const CriteriaPanel: React.FC<CriteriaPanelProps> = ({ criteria, columns,
                                         <input
                                             type="text"
                                             placeholder="Text Match"
-                                            value={c.text || ''}
-                                            onChange={(e) => updateCriterion(c.id, 'text', e.target.value)}
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-sm text-slate-200 focus:border-accent focus:ring-1 focus:ring-accent outline-none placeholder:text-slate-600"
+                                            disabled
+                                            className="w-full bg-slate-900/50 border border-slate-800 rounded-md px-3 py-1.5 text-sm text-slate-600 cursor-not-allowed opacity-50 placeholder:text-slate-600"
                                         />
                                     </div>
                                 </>

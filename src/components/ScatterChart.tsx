@@ -3,14 +3,15 @@ import { ScatterChart as RechartsScatterChart, Scatter, XAxis, YAxis, CartesianG
 import type { DataRow } from '../types';
 import { detectColumnFormat, formatValue } from '../lib/formatUtils';
 
-const STORAGE_KEY_CHART_AXES = 'compsheet_chart_axes';
-
 interface ScatterChartProps {
     data: DataRow[];
     columns: string[];
+    chartId?: string;
 }
 
-export const ScatterChart: React.FC<ScatterChartProps> = ({ data, columns }) => {
+export const ScatterChart: React.FC<ScatterChartProps> = ({ data, columns, chartId = 'default' }) => {
+    const STORAGE_KEY_CHART_AXES = `compsheet_chart_axes_${chartId}`;
+
     // Load saved axes from localStorage or use defaults
     const [xAxis, setXAxis] = useState<string>(() => {
         try {
@@ -41,7 +42,7 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({ data, columns }) => 
         } catch (error) {
             console.error('Failed to save chart axes:', error);
         }
-    }, [xAxis, yAxis]);
+    }, [xAxis, yAxis, STORAGE_KEY_CHART_AXES]);
 
     // Detect formats for selected axes
     const xFormat = useMemo(() => {
@@ -142,31 +143,28 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({ data, columns }) => 
     };
 
     return (
-        <div className="bg-surface rounded-xl border border-slate-700/50 p-6 shadow-xl backdrop-blur-sm">
-            <div className="flex flex-col gap-4 mb-6">
-                <h2 className="text-xl font-bold text-slate-100">Visualization</h2>
-                <div className="flex flex-wrap items-center gap-3">
-                    <select
-                        value={xAxis}
-                        onChange={(e) => setXAxis(e.target.value)}
-                        className="flex-1 min-w-[150px] bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-sm text-slate-200 focus:border-accent outline-none"
-                    >
-                        {columns.map(col => <option key={col} value={col}>{col}</option>)}
-                    </select>
-                    <span className="text-slate-500 text-sm">vs</span>
-                    <select
-                        value={yAxis}
-                        onChange={(e) => setYAxis(e.target.value)}
-                        className="flex-1 min-w-[150px] bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-sm text-slate-200 focus:border-accent outline-none"
-                    >
-                        {columns.map(col => <option key={col} value={col}>{col}</option>)}
-                    </select>
-                </div>
+        <div className="bg-surface rounded-xl border border-slate-700/50 p-4 shadow-xl backdrop-blur-sm">
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+                <select
+                    value={xAxis}
+                    onChange={(e) => setXAxis(e.target.value)}
+                    className="flex-1 min-w-[150px] bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-sm text-slate-200 focus:border-accent outline-none"
+                >
+                    {columns.map(col => <option key={col} value={col}>{col}</option>)}
+                </select>
+                <span className="text-slate-500 text-sm">vs</span>
+                <select
+                    value={yAxis}
+                    onChange={(e) => setYAxis(e.target.value)}
+                    className="flex-1 min-w-[150px] bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-sm text-slate-200 focus:border-accent outline-none"
+                >
+                    {columns.map(col => <option key={col} value={col}>{col}</option>)}
+                </select>
             </div>
 
-            <div className="h-[400px] w-full">
+            <div className="h-[500px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                    <RechartsScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 60 }}>
+                    <RechartsScatterChart margin={{ top: 20, right: 20, bottom: 40, left: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
                         <XAxis
                             type="number"
@@ -177,6 +175,7 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({ data, columns }) => 
                             tickLine={{ stroke: '#334155' }}
                             axisLine={{ stroke: '#334155' }}
                             tickFormatter={formatXTick}
+                            label={{ value: xAxis, position: 'bottom', offset: 0, style: { fill: '#94a3b8', fontSize: 12, fontWeight: 600 } }}
                         />
                         <YAxis
                             type="number"
@@ -187,6 +186,7 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({ data, columns }) => 
                             tickLine={{ stroke: '#334155' }}
                             axisLine={{ stroke: '#334155' }}
                             tickFormatter={formatYTick}
+                            label={{ value: yAxis, angle: -90, position: 'left', offset: 10, style: { fill: '#94a3b8', fontSize: 12, fontWeight: 600, textAnchor: 'middle' } }}
                         />
                         <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
                         <Scatter name="Companies" data={chartData} fill="#3b82f6">

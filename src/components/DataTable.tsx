@@ -98,11 +98,11 @@ export const DataTable: React.FC<DataTableProps> = ({ data, visibleColumns }) =>
                             {allColumns.map((col) => (
                                 <th
                                     key={col}
-                                    className="px-6 py-4 whitespace-nowrap tracking-wider cursor-pointer hover:bg-slate-800/50 transition-colors group"
+                                    className="px-6 py-4 tracking-wider cursor-pointer hover:bg-slate-800/50 transition-colors group max-w-[200px]"
                                     onClick={() => handleSort(col)}
                                 >
                                     <div className="flex items-center gap-2">
-                                        <span>{col}</span>
+                                        <span className="break-words">{col}</span>
                                         {getSortIcon(col)}
                                     </div>
                                 </th>

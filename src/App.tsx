@@ -1,10 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { FileUpload } from './components/FileUpload';
-import { CriteriaPanel } from './components/CriteriaPanel';
-import { DataTable } from './components/DataTable';
-import { ScatterChart } from './components/ScatterChart';
+import { Navigation } from './components/Navigation';
+import { OverviewPage } from './pages/OverviewPage';
+import { ChartsPage } from './pages/ChartsPage';
+import { DataPage } from './pages/DataPage';
 import type { Criterion, DataRow } from './types';
-import { LayoutDashboard, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 const STORAGE_KEY_CRITERIA = 'compsheet_criteria';
 const STORAGE_KEY_DATA = 'compsheet_data';
@@ -80,7 +82,7 @@ function App() {
           return false;
         }
 
-        // If we have numeric filters (min or max), treat as numeric comparison
+        // Check numeric filters (min/max) if present
         if (hasMinFilter || hasMaxFilter) {
           const numVal = Number(val);
 
@@ -106,7 +108,7 @@ function App() {
           }
         }
 
-        // If we have text filter, check text matching
+        // Check text filter if present
         if (hasTextFilter) {
           const strVal = String(val).toLowerCase();
           const searchStr = c.text!.toLowerCase();
@@ -138,70 +140,92 @@ function App() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 p-8 font-sans selection:bg-accent/30">
-      <div className="max-w-7xl mx-auto space-y-8">
-
-        {/* Header */}
-        <header className="flex items-center justify-between pb-6 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-accent/10 rounded-xl">
-              <LayoutDashboard className="w-8 h-8 text-accent" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-                Compsheet
-              </h1>
-              <p className="text-slate-500 text-sm">Advanced Data Filtering & Visualization</p>
-            </div>
+  // Upload screen when no data
+  if (data.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-200 p-8 font-sans selection:bg-accent/30">
+        <div className="max-w-xl mx-auto mt-20">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-3">
+              Compsheet
+            </h1>
+            <p className="text-slate-500">Advanced Data Filtering & Visualization</p>
           </div>
-          {data.length > 0 && (
-            <button
-              onClick={handleReset}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-              New Upload
-            </button>
-          )}
-        </header>
-
-        {/* Main Content */}
-        {data.length === 0 ? (
-          <div className="max-w-xl mx-auto mt-20">
-            <FileUpload onDataLoaded={handleDataLoaded} />
-          </div>
-        ) : (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-            {/* Top Row: Criteria & Chart */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-5">
-                <CriteriaPanel
-                  criteria={criteria}
-                  columns={columns}
-                  data={data}
-                  onUpdateCriteria={setCriteria}
-                />
-              </div>
-              <div className="lg:col-span-7">
-                <ScatterChart
-                  data={filteredData}
-                  columns={columns}
-                />
-              </div>
-            </div>
-
-            {/* Bottom Row: Data Table */}
-            <DataTable
-              data={filteredData}
-              visibleColumns={criteria.filter(c => c.active).map(c => c.column)}
-            />
-
-          </div>
-        )}
+          <FileUpload onDataLoaded={handleDataLoaded} />
+        </div>
       </div>
-    </div>
+    );
+  }
+
+  // Main app with navigation
+  return (
+    <BrowserRouter>
+      <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-accent/30 flex">
+        {/* Left Navigation */}
+        <Navigation />
+
+        {/* Main Content Area */}
+        <div className="flex-1 p-8">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {/* Header */}
+            <header className="flex items-center justify-between pb-4 border-b border-slate-800">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-100">
+                  {data.length.toLocaleString()} Companies Loaded
+                </h2>
+                <p className="text-sm text-slate-500">
+                  {filteredData.length.toLocaleString()} matching current filters
+                </p>
+              </div>
+              <button
+                onClick={handleReset}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                New Upload
+              </button>
+            </header>
+
+            {/* Routes */}
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <OverviewPage
+                    data={data}
+                    filteredData={filteredData}
+                    criteria={criteria}
+                    columns={columns}
+                    onUpdateCriteria={setCriteria}
+                  />
+                }
+              />
+              <Route
+                path="/charts"
+                element={
+                  <ChartsPage
+                    data={filteredData}
+                    fullData={data}
+                    columns={columns}
+                    criteria={criteria}
+                    onUpdateCriteria={setCriteria}
+                  />
+                }
+              />
+              <Route
+                path="/data"
+                element={
+                  <DataPage
+                    data={data}
+                  />
+                }
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </div>
+      </div>
+    </BrowserRouter>
   );
 }
 
