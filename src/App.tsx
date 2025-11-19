@@ -8,6 +8,7 @@ import { DataPage } from './pages/DataPage';
 import { AnalysisPage } from './pages/AnalysisPage';
 import type { Criterion, DataRow } from './types';
 import { RefreshCw } from 'lucide-react';
+import { detectColumnFormat } from './lib/formatUtils';
 
 const STORAGE_KEY_CRITERIA = 'compsheet_criteria';
 const STORAGE_KEY_DATA = 'compsheet_data';
@@ -59,13 +60,34 @@ function App() {
   }, [criteria]);
 
   const filteredData = useMemo(() => {
-    // If no active criteria, return all data
-    const activeCriteria = criteria.filter(c => c.active);
-    if (activeCriteria.length === 0) return data;
+    // Apply ALL criteria regardless of 'active' status (checkbox only controls column visibility)
+    // Filter out criteria that have no values set to avoid unnecessary processing
+    const effectiveCriteria = criteria.filter(c =>
+      (c.min !== undefined && c.min !== '') ||
+      (c.max !== undefined && c.max !== '') ||
+      (c.text !== undefined && c.text.trim() !== '')
+    );
+
+    if (effectiveCriteria.length === 0) return data;
+
+    // Pre-calculate data format for percentage columns using the SHARED utility
+    const columnIsDecimal = new Map<string, boolean>();
+
+    if (data.length > 0) {
+      effectiveCriteria.forEach(c => {
+        // Get all values for this column to pass to detector
+        const values = data.map(r => r[c.column]).filter(v => v !== undefined && v !== '');
+        const format = detectColumnFormat(c.column, values);
+
+        if (format === 'percentage_decimal') {
+          columnIsDecimal.set(c.column, true);
+        }
+      });
+    }
 
     return data.filter(row => {
-      // ALL active criteria must be satisfied (AND logic)
-      return activeCriteria.every(c => {
+      // ALL effective criteria must be satisfied (AND logic)
+      return effectiveCriteria.every(c => {
         const val = row[c.column];
 
         // Determine if we have numeric or text filters
@@ -107,6 +129,11 @@ function App() {
               min = Number(cleanMin);
             }
 
+            // Scale filter if data is decimal
+            if (columnIsDecimal.get(c.column)) {
+              min = min / 100;
+            }
+
             if (isNaN(min) || numVal < min) {
               return false;
             }
@@ -118,6 +145,11 @@ function App() {
             if (isNaN(max) && typeof c.max === 'string') {
               const cleanMax = c.max.replace(/[^0-9.\-]/g, '');
               max = Number(cleanMax);
+            }
+
+            // Scale filter if data is decimal
+            if (columnIsDecimal.get(c.column)) {
+              max = max / 100;
             }
 
             if (isNaN(max) || numVal > max) {

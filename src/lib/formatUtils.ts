@@ -14,7 +14,24 @@ export const detectColumnFormat = (columnName: string, values: any[]) => {
     }
 
     // Check for percentage columns
-    if (lowerName.includes('margin') || lowerName.includes('growth') || lowerName.includes('%')) {
+    if (lowerName.includes('margin') || lowerName.includes('growth') || lowerName.includes('%') || lowerName.includes('yield') || lowerName.includes('roe') || lowerName.includes('roa')) {
+        // Determine if values are decimal (0.15) or whole (15.5)
+        const numericValues = values.map(v => {
+            if (typeof v === 'number') return v;
+            return Number(String(v).replace(/[^0-9.\-]/g, ''));
+        }).filter(n => !isNaN(n));
+
+        if (numericValues.length > 0) {
+            // Calculate median absolute value
+            const sorted = numericValues.map(Math.abs).sort((a, b) => a - b);
+            const median = sorted[Math.floor(sorted.length / 2)];
+
+            // If median is small (< 2), assume decimal format (e.g. 0.15 = 15%, 1.3 = 130%)
+            // If median is large (> 2), assume whole number format (e.g. 15 = 15%)
+            if (median < 2) {
+                return 'percentage_decimal';
+            }
+        }
         return 'percentage';
     }
 
@@ -23,6 +40,24 @@ export const detectColumnFormat = (columnName: string, values: any[]) => {
         lowerName.includes('cap') || lowerName.includes('revenue') ||
         lowerName.includes('fcf') || lowerName.includes('ebitda') ||
         lowerName.includes('ev (')) {  // Only match "EV ($M)" not "EV/Rev"
+
+        // Determine if values are in Millions (100 = $100M) or Ones (100,000,000 = $100M)
+        const numericValues = values.map(v => {
+            if (typeof v === 'number') return v;
+            return Number(String(v).replace(/[^0-9.\-]/g, ''));
+        }).filter(n => !isNaN(n));
+
+        if (numericValues.length > 0) {
+            const sorted = numericValues.map(Math.abs).sort((a, b) => a - b);
+            const median = sorted[Math.floor(sorted.length / 2)];
+
+            // If median is relatively small (< 10,000), assume Millions
+            // Public companies usually have > $10M revenue. If data is 10, it's likely $10M.
+            // If data was ones, it would be 10,000,000.
+            if (median < 10000) {
+                return 'currency_millions';
+            }
+        }
         return 'currency';
     }
 
@@ -49,23 +84,31 @@ export const formatValue = (value: any, format: string): string => {
     const numValue = Number(value);
 
     switch (format) {
+        case 'percentage_decimal':
+            if (isNaN(numValue)) return String(value);
+            return (numValue * 100).toFixed(1) + '%';
+
         case 'percentage':
             if (isNaN(numValue)) return String(value);
-            // If value is between 0 and 1, treat as decimal percentage
-            if (numValue >= 0 && numValue <= 1) {
-                return (numValue * 100).toFixed(1) + '%';
-            }
-            // Otherwise already a percentage
             return numValue.toFixed(1) + '%';
+
+        case 'currency_millions':
+            if (isNaN(numValue)) return String(value);
+            if (Math.abs(numValue) >= 1000) {
+                return '$' + (numValue / 1000).toFixed(1) + 'B';
+            }
+            return '$' + numValue.toLocaleString(undefined, { maximumFractionDigits: 1 }) + 'M';
 
         case 'currency':
             if (isNaN(numValue)) return String(value);
-            if (numValue >= 1000000) {
-                return '$' + (numValue / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 }) + 'B';
-            } else if (numValue >= 1000) {
-                return '$' + numValue.toLocaleString(undefined, { maximumFractionDigits: 1 }) + 'M';
+            if (Math.abs(numValue) >= 1.0e9) {
+                return '$' + (numValue / 1.0e9).toFixed(1) + 'B';
+            } else if (Math.abs(numValue) >= 1.0e6) {
+                return '$' + (numValue / 1.0e6).toFixed(1) + 'M';
+            } else if (Math.abs(numValue) >= 1.0e3) {
+                return '$' + (numValue / 1.0e3).toFixed(0) + 'k';
             }
-            return '$' + numValue.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+            return '$' + numValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
         case 'decimal':
             if (isNaN(numValue)) return String(value);
