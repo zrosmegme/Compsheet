@@ -4,7 +4,7 @@ import {
     ComposedChart, Bar, ReferenceLine
 } from 'recharts';
 import { fetchChartData, type ChartDataPoint } from '../lib/finance';
-import { Search, Loader2, Plus, X, Eye, EyeOff } from 'lucide-react';
+import { Search, Loader2, Plus, X, Eye, EyeOff, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { FilterBar } from '../components/FilterBar';
 import type { DataRow, Criterion } from '../types';
 
@@ -295,6 +295,49 @@ export function AnalysisPage({
         return numVal.toFixed(1);
     };
 
+    // Sorting State
+    const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' } | null>(null);
+
+    const handleSort = (column: string) => {
+        setSortConfig(current => {
+            if (!current || current.column !== column) {
+                return { column, direction: 'asc' };
+            }
+            if (current.direction === 'asc') {
+                return { column, direction: 'desc' };
+            }
+            return null;
+        });
+    };
+
+    // Sort the comparable rows
+    const sortedComparableRows = useMemo(() => {
+        if (!sortConfig) return comparableRows;
+
+        return [...comparableRows].sort((a, b) => {
+            const aVal = a[sortConfig.column];
+            const bVal = b[sortConfig.column];
+
+            // Handle nulls
+            if (aVal === null || aVal === undefined || aVal === '') return 1;
+            if (bVal === null || bVal === undefined || bVal === '') return -1;
+
+            // Numeric sort
+            const aNum = Number(aVal);
+            const bNum = Number(bVal);
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+                return sortConfig.direction === 'asc' ? aNum - bNum : bNum - aNum;
+            }
+
+            // String sort
+            const aStr = String(aVal).toLowerCase();
+            const bStr = String(bVal).toLowerCase();
+            return sortConfig.direction === 'asc'
+                ? aStr.localeCompare(bStr)
+                : bStr.localeCompare(aStr);
+        });
+    }, [comparableRows, sortConfig]);
+
     return (
         <div className="space-y-8">
             {/* Filter Bar */}
@@ -531,7 +574,24 @@ export function AnalysisPage({
                                 <thead className="text-xs text-slate-400 uppercase bg-slate-900/50 border-b border-slate-800">
                                     <tr>
                                         {numericColumns.map(col => (
-                                            <th key={col} className="px-6 py-4 font-medium max-w-[150px] break-words">{col}</th>
+                                            <th
+                                                key={col}
+                                                className="px-6 py-4 font-medium max-w-[150px] break-words cursor-pointer hover:bg-slate-800/50 transition-colors group select-none"
+                                                onClick={() => handleSort(col)}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <span>{col}</span>
+                                                    {sortConfig?.column === col ? (
+                                                        sortConfig.direction === 'asc' ? (
+                                                            <ArrowUp className="w-3 h-3 text-accent" />
+                                                        ) : (
+                                                            <ArrowDown className="w-3 h-3 text-accent" />
+                                                        )
+                                                    ) : (
+                                                        <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                                    )}
+                                                </div>
+                                            </th>
                                         ))}
                                     </tr>
                                 </thead>
@@ -547,28 +607,17 @@ export function AnalysisPage({
                                         </tr>
                                     )}
 
-                                    {/* Comparable Companies */}
-                                    {comparableRows.map((row, i) => (
-                                        <tr key={i} className="hover:bg-slate-800/30 transition-colors">
-                                            {numericColumns.map(col => (
-                                                <td key={col} className="px-6 py-4 whitespace-nowrap text-slate-300">
-                                                    {formatValue(row[col], col)}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-
-                                    {/* Summary Rows - Only if we have comparables */}
+                                    {/* Summary Rows - Moved to top (after selected) */}
                                     {summaryRows && comparableRows.length > 0 && (
                                         <>
-                                            <tr className="bg-slate-800/50 font-medium border-t-2 border-slate-700">
+                                            <tr className="bg-slate-800/50 font-medium border-b border-slate-700">
                                                 {numericColumns.map(col => (
                                                     <td key={col} className="px-6 py-4 whitespace-nowrap text-emerald-400">
                                                         {col === 'Ticker' ? 'AVERAGE' : formatValue(summaryRows.averages[col] ?? '', col)}
                                                     </td>
                                                 ))}
                                             </tr>
-                                            <tr className="bg-slate-800/50 font-medium">
+                                            <tr className="bg-slate-800/50 font-medium border-b-2 border-slate-700">
                                                 {numericColumns.map(col => (
                                                     <td key={col} className="px-6 py-4 whitespace-nowrap text-emerald-400">
                                                         {col === 'Ticker' ? 'MEDIAN' : formatValue(summaryRows.medians[col] ?? '', col)}
@@ -577,6 +626,17 @@ export function AnalysisPage({
                                             </tr>
                                         </>
                                     )}
+
+                                    {/* Comparable Companies - Sorted */}
+                                    {sortedComparableRows.map((row, i) => (
+                                        <tr key={i} className="hover:bg-slate-800/30 transition-colors">
+                                            {numericColumns.map(col => (
+                                                <td key={col} className="px-6 py-4 whitespace-nowrap text-slate-300">
+                                                    {formatValue(row[col], col)}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
