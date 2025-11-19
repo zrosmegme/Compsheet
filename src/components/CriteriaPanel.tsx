@@ -42,30 +42,55 @@ const isNumericColumn = (columnName: string, data: any[]): boolean => {
 };
 
 export const CriteriaPanel: React.FC<CriteriaPanelProps> = ({ criteria, columns, data, onUpdateCriteria }) => {
-    const [editingId, setEditingId] = useState<string | null>(null);
+    // Store both the ID and the temporary values of the criterion being edited
+    const [editingState, setEditingState] = useState<{ id: string; tempCriterion: Criterion } | null>(null);
     const prevCriteriaLength = useRef(criteria.length);
 
     // Auto-edit new criteria
     useEffect(() => {
         if (criteria.length > prevCriteriaLength.current) {
             const newCriterion = criteria[criteria.length - 1];
-            setEditingId(newCriterion.id);
+            setEditingState({ id: newCriterion.id, tempCriterion: { ...newCriterion } });
         }
         prevCriteriaLength.current = criteria.length;
     }, [criteria.length, criteria]);
 
-    const updateCriterion = (id: string, field: keyof Criterion, value: any) => {
+    const startEditing = (c: Criterion) => {
+        setEditingState({ id: c.id, tempCriterion: { ...c } });
+    };
+
+    const saveEditing = () => {
+        if (!editingState) return;
+
+        const updated = criteria.map(c => {
+            if (c.id === editingState.id) {
+                return editingState.tempCriterion;
+            }
+            return c;
+        });
+        onUpdateCriteria(updated);
+        setEditingState(null);
+    };
+
+    const updateTempCriterion = (field: keyof Criterion, value: any) => {
+        if (!editingState) return;
+
+        const updatedTemp = { ...editingState.tempCriterion, [field]: value };
+
+        // If changing column to a non-numeric one, clear min/max values
+        if (field === 'column' && !isNumericColumn(value, data)) {
+            updatedTemp.min = undefined;
+            updatedTemp.max = undefined;
+        }
+
+        setEditingState({ ...editingState, tempCriterion: updatedTemp });
+    };
+
+    // Direct update for non-editing actions (like checkbox toggle)
+    const updateCriterionDirectly = (id: string, field: keyof Criterion, value: any) => {
         const updated = criteria.map(c => {
             if (c.id === id) {
-                const updatedCriterion = { ...c, [field]: value };
-
-                // If changing column to a non-numeric one, clear min/max values
-                if (field === 'column' && !isNumericColumn(value, data)) {
-                    updatedCriterion.min = undefined;
-                    updatedCriterion.max = undefined;
-                }
-
-                return updatedCriterion;
+                return { ...c, [field]: value };
             }
             return c;
         });
@@ -74,17 +99,28 @@ export const CriteriaPanel: React.FC<CriteriaPanelProps> = ({ criteria, columns,
 
     const removeCriterion = (id: string) => {
         onUpdateCriteria(criteria.filter(c => c.id !== id));
-        if (editingId === id) setEditingId(null);
+        if (editingState?.id === id) setEditingState(null);
+    };
+
+    const getUnit = (columnName: string): string => {
+        const lower = columnName.toLowerCase();
+        if (lower.includes('growth') || lower.includes('margin') || lower.includes('roe') || lower.includes('roa') || lower.includes('yield')) return '%';
+        if (lower.includes('ev/') || lower.includes('p/e') || lower.includes('peg') || lower.includes('ratio')) return 'x';
+        if (lower.includes('revenue') || lower.includes('market cap') || lower.includes('cash') || lower.includes('debt') || lower.includes('ebitda') || lower.includes('fcf')) return '$';
+        return '';
     };
 
     const formatCriterionLabel = (c: Criterion) => {
         const isNumeric = isNumericColumn(c.column, data);
+        const unit = getUnit(c.column);
         let label = `${c.column}: `;
 
         if (isNumeric) {
-            if (c.min && c.max) return `${label} ${c.min} to ${c.max}`;
-            if (c.min) return `${label} > ${c.min}`;
-            if (c.max) return `${label} < ${c.max}`;
+            const formatVal = (v: string | number | undefined) => v ? `${unit === '$' ? '$' : ''}${v}${unit === '%' ? '%' : ''}${unit === 'x' ? 'x' : ''}` : '';
+
+            if (c.min && c.max) return `${label} ${formatVal(c.min)} to ${formatVal(c.max)}`;
+            if (c.min) return `${label} > ${formatVal(c.min)}`;
+            if (c.max) return `${label} < ${formatVal(c.max)}`;
             return `${label} Any`;
         } else {
             return c.text ? `${label} contains "${c.text}"` : `${label} Any`;
@@ -102,16 +138,19 @@ export const CriteriaPanel: React.FC<CriteriaPanelProps> = ({ criteria, columns,
     return (
         <div className="flex flex-wrap gap-3">
             {criteria.map((c) => {
-                const isEditing = editingId === c.id;
-                const isNumeric = isNumericColumn(c.column, data);
+                const isEditing = editingState?.id === c.id;
 
                 if (isEditing) {
+                    const tempC = editingState.tempCriterion;
+                    const isNumeric = isNumericColumn(tempC.column, data);
+                    const unit = getUnit(tempC.column);
+
                     return (
-                        <div key={c.id} className="w-full md:w-auto md:min-w-[400px] flex flex-col gap-3 p-4 rounded-lg border border-slate-700 bg-slate-800/50 animate-in fade-in zoom-in-95 duration-200">
+                        <div key={c.id} className="w-full md:w-auto md:min-w-[400px] flex flex-col gap-3 p-4 rounded-lg border border-slate-700 bg-slate-800/50 animate-in fade-in zoom-in-95 duration-200 shadow-xl z-10">
                             <div className="flex items-center gap-3">
                                 <select
-                                    value={c.column}
-                                    onChange={(e) => updateCriterion(c.id, 'column', e.target.value)}
+                                    value={tempC.column}
+                                    onChange={(e) => updateTempCriterion('column', e.target.value)}
                                     className="flex-1 bg-slate-900 border border-slate-700 rounded-md px-2 py-1.5 text-sm text-slate-200 focus:border-accent focus:ring-1 focus:ring-accent outline-none"
                                 >
                                     {columns.map(col => (
@@ -119,7 +158,7 @@ export const CriteriaPanel: React.FC<CriteriaPanelProps> = ({ criteria, columns,
                                     ))}
                                 </select>
                                 <button
-                                    onClick={() => setEditingId(null)}
+                                    onClick={saveEditing}
                                     className="p-1.5 bg-accent/10 text-accent hover:bg-accent/20 rounded-md transition-colors"
                                     title="Done"
                                 >
@@ -130,28 +169,44 @@ export const CriteriaPanel: React.FC<CriteriaPanelProps> = ({ criteria, columns,
                             <div className="grid grid-cols-2 gap-2">
                                 {isNumeric ? (
                                     <>
-                                        <input
-                                            type="text"
-                                            placeholder="Min"
-                                            value={c.min || ''}
-                                            onChange={(e) => updateCriterion(c.id, 'min', e.target.value)}
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-sm text-slate-200 focus:border-accent focus:ring-1 focus:ring-accent outline-none"
-                                        />
-                                        <input
-                                            type="text"
-                                            placeholder="Max"
-                                            value={c.max || ''}
-                                            onChange={(e) => updateCriterion(c.id, 'max', e.target.value)}
-                                            className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-sm text-slate-200 focus:border-accent focus:ring-1 focus:ring-accent outline-none"
-                                        />
+                                        <div className="relative">
+                                            {unit === '$' && <span className="absolute left-3 top-1.5 text-slate-500 text-sm">$</span>}
+                                            <input
+                                                type="text"
+                                                placeholder="Min"
+                                                value={tempC.min || ''}
+                                                onChange={(e) => updateTempCriterion('min', e.target.value)}
+                                                className={cn(
+                                                    "w-full bg-slate-900 border border-slate-700 rounded-md py-1.5 text-sm text-slate-200 focus:border-accent focus:ring-1 focus:ring-accent outline-none",
+                                                    unit === '$' ? "pl-6 pr-3" : "px-3",
+                                                    (unit === '%' || unit === 'x') && "pr-8"
+                                                )}
+                                            />
+                                            {(unit === '%' || unit === 'x') && <span className="absolute right-3 top-1.5 text-slate-500 text-sm">{unit}</span>}
+                                        </div>
+                                        <div className="relative">
+                                            {unit === '$' && <span className="absolute left-3 top-1.5 text-slate-500 text-sm">$</span>}
+                                            <input
+                                                type="text"
+                                                placeholder="Max"
+                                                value={tempC.max || ''}
+                                                onChange={(e) => updateTempCriterion('max', e.target.value)}
+                                                className={cn(
+                                                    "w-full bg-slate-900 border border-slate-700 rounded-md py-1.5 text-sm text-slate-200 focus:border-accent focus:ring-1 focus:ring-accent outline-none",
+                                                    unit === '$' ? "pl-6 pr-3" : "px-3",
+                                                    (unit === '%' || unit === 'x') && "pr-8"
+                                                )}
+                                            />
+                                            {(unit === '%' || unit === 'x') && <span className="absolute right-3 top-1.5 text-slate-500 text-sm">{unit}</span>}
+                                        </div>
                                     </>
                                 ) : (
                                     <div className="col-span-2">
                                         <input
                                             type="text"
                                             placeholder="Text (partial match)"
-                                            value={c.text || ''}
-                                            onChange={(e) => updateCriterion(c.id, 'text', e.target.value)}
+                                            value={tempC.text || ''}
+                                            onChange={(e) => updateTempCriterion('text', e.target.value)}
                                             className="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-1.5 text-sm text-slate-200 focus:border-accent focus:ring-1 focus:ring-accent outline-none"
                                         />
                                     </div>
@@ -171,14 +226,14 @@ export const CriteriaPanel: React.FC<CriteriaPanelProps> = ({ criteria, columns,
                                 ? "bg-accent/10 border-accent/30 text-slate-200 hover:bg-accent/20"
                                 : "bg-slate-900/30 border-slate-800 text-slate-500 hover:bg-slate-900/50"
                         )}
-                        onClick={() => setEditingId(c.id)}
+                        onClick={() => startEditing(c)}
                     >
                         <input
                             type="checkbox"
                             checked={c.active}
                             onChange={(e) => {
                                 e.stopPropagation();
-                                updateCriterion(c.id, 'active', e.target.checked);
+                                updateCriterionDirectly(c.id, 'active', e.target.checked);
                             }}
                             className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-800 text-accent focus:ring-accent/50"
                         />
@@ -190,7 +245,7 @@ export const CriteriaPanel: React.FC<CriteriaPanelProps> = ({ criteria, columns,
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    setEditingId(c.id);
+                                    startEditing(c);
                                 }}
                                 className="p-1 hover:text-accent transition-colors"
                             >
