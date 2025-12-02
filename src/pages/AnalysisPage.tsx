@@ -7,6 +7,7 @@ import { fetchChartData, type ChartDataPoint } from '../lib/finance';
 import { Search, Loader2, Plus, X, Eye, EyeOff, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { FilterBar } from '../components/FilterBar';
 import type { DataRow, Criterion } from '../types';
+import { DEFAULT_COLUMNS } from '../lib/constants';
 
 interface AnalysisPageProps {
     data: DataRow[];
@@ -19,17 +20,6 @@ interface AnalysisPageProps {
 const TIME_FILTERS = ['1mo', '3mo', '6mo', '1y', '2y', '5y'];
 
 const STORAGE_KEY_ANALYSIS = 'compsheet_analysis';
-
-// Specific columns to show in the comparables table
-const COMPARABLE_COLUMNS = [
-    'Ticker',
-    'FTM Revenue',
-    'MRQ Revenue Growth',
-    'FTM Revenue Growth',
-    'FTM FCF Margin',
-    'EV/Rev (FTM)',
-    'EV/uFCF (FTM)'
-];
 
 export function AnalysisPage({
     data,
@@ -208,29 +198,21 @@ export function AnalysisPage({
         return data.find(row => row['Ticker']?.toString().toUpperCase() === selectedTicker);
     }, [data, selectedTicker]);
 
-    const numericColumns = useMemo(() => {
-        if (comparableRows.length === 0 && !selectedCompanyRow) return [];
-        const first = selectedCompanyRow || comparableRows[0];
-
-        // Filter to only show the specific comparable columns that exist in the data
-        const filteredColumns = COMPARABLE_COLUMNS.filter(col => col in first);
-
-        // If none of the specified columns exist, show all available columns
-        if (filteredColumns.length === 0) {
-            return Object.keys(first);
-        }
-
-        return filteredColumns;
-    }, [comparableRows, selectedCompanyRow]);
+    // Use the same column logic as OverviewPage - DEFAULT_COLUMNS + active criteria columns
+    const visibleColumns = useMemo(() => {
+        const activeCriteria = criteria.filter(c => c.active);
+        const criteriaColumns = activeCriteria.map(c => c.column);
+        return ['Ticker', ...Array.from(new Set([...DEFAULT_COLUMNS, ...criteriaColumns]))];
+    }, [criteria]);
 
     // Calculate summary rows ONLY from comparable companies (not including selected ticker)
     const summaryRows = useMemo(() => {
-        if (comparableRows.length === 0 || numericColumns.length === 0) return null;
+        if (comparableRows.length === 0 || visibleColumns.length === 0) return null;
 
         const averages: Record<string, any> = { Ticker: 'AVERAGE' };
         const medians: Record<string, any> = { Ticker: 'MEDIAN' };
 
-        numericColumns.forEach(col => {
+        visibleColumns.forEach(col => {
             const values = comparableRows
                 .map(row => Number(row[col]))
                 .filter(v => !isNaN(v));
@@ -250,7 +232,7 @@ export function AnalysisPage({
         });
 
         return { averages, medians };
-    }, [comparableRows, numericColumns]);
+    }, [comparableRows, visibleColumns]);
 
     const formatValue = (val: any, columnName?: string) => {
         if (val === null || val === undefined || val === '') return '-';
@@ -589,7 +571,7 @@ export function AnalysisPage({
                             <table className="w-full text-sm text-left">
                                 <thead className="text-xs text-slate-400 uppercase bg-slate-900/50 border-b border-slate-800">
                                     <tr>
-                                        {numericColumns.map(col => (
+                                        {visibleColumns.map(col => (
                                             <th
                                                 key={col}
                                                 className="px-6 py-4 font-medium max-w-[150px] break-words cursor-pointer hover:bg-slate-800/50 transition-colors group select-none"
@@ -615,7 +597,7 @@ export function AnalysisPage({
                                     {/* Selected Company Row - Highlighted */}
                                     {selectedCompanyRow && (
                                         <tr className="bg-accent/10 border-b-2 border-accent/30">
-                                            {numericColumns.map(col => (
+                                            {visibleColumns.map(col => (
                                                 <td key={col} className="px-6 py-4 whitespace-nowrap text-white font-medium">
                                                     {formatValue(selectedCompanyRow[col], col)}
                                                 </td>
@@ -627,14 +609,14 @@ export function AnalysisPage({
                                     {summaryRows && comparableRows.length > 0 && (
                                         <>
                                             <tr className="bg-slate-800/50 font-medium border-b border-slate-700">
-                                                {numericColumns.map(col => (
+                                                {visibleColumns.map(col => (
                                                     <td key={col} className="px-6 py-4 whitespace-nowrap text-emerald-400">
                                                         {col === 'Ticker' ? 'AVERAGE' : formatValue(summaryRows.averages[col] ?? '', col)}
                                                     </td>
                                                 ))}
                                             </tr>
                                             <tr className="bg-slate-800/50 font-medium border-b-2 border-slate-700">
-                                                {numericColumns.map(col => (
+                                                {visibleColumns.map(col => (
                                                     <td key={col} className="px-6 py-4 whitespace-nowrap text-emerald-400">
                                                         {col === 'Ticker' ? 'MEDIAN' : formatValue(summaryRows.medians[col] ?? '', col)}
                                                     </td>
@@ -646,7 +628,7 @@ export function AnalysisPage({
                                     {/* Comparable Companies - Sorted */}
                                     {sortedComparableRows.map((row, i) => (
                                         <tr key={i} className="hover:bg-slate-800/30 transition-colors">
-                                            {numericColumns.map(col => (
+                                            {visibleColumns.map(col => (
                                                 <td key={col} className="px-6 py-4 whitespace-nowrap text-slate-300">
                                                     {formatValue(row[col], col)}
                                                 </td>
