@@ -1,9 +1,8 @@
 export const DEFAULT_COLUMNS = [
+    'Last Price',
     'Market Cap',
-    'FTM Revenue',
-    'MRQ Revenue Growth',
-    'FTM Revenue Growth',
-    'FTM FCF Margin',
-    'EV/Rev (FTM)',
-    'EV/uFCF (FTM)'
+    'Revenue growth (MRQ)',
+    'Revenue growth (FTM)',
+    'EV/Sales (FTM)',
+    'EV/uFCF (2026)'
 ];
