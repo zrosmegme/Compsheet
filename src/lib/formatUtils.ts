@@ -35,8 +35,13 @@ export const detectColumnFormat = (columnName: string, values: any[]) => {
         return 'percentage';
     }
 
-    // Check for currency columns
-    if (lowerName.includes('$') || lowerName.includes('price') ||
+    // Check for stock price columns - format as simple dollar amount
+    if (lowerName.includes('price')) {
+        return 'currency_price';
+    }
+
+    // Check for currency columns (revenue, market cap, etc.)
+    if (lowerName.includes('$') ||
         lowerName.includes('cap') || lowerName.includes('revenue') ||
         lowerName.includes('fcf') || lowerName.includes('ebitda') ||
         lowerName.includes('ev (')) {  // Only match "EV ($M)" not "EV/Rev"
@@ -91,6 +96,10 @@ export const formatValue = (value: any, format: string): string => {
         case 'percentage':
             if (isNaN(numValue)) return String(value);
             return numValue.toFixed(1) + '%';
+
+        case 'currency_price':
+            if (isNaN(numValue)) return String(value);
+            return '$' + numValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
         case 'currency_millions':
             if (isNaN(numValue)) return String(value);
