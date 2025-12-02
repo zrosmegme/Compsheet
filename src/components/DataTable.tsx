@@ -16,8 +16,8 @@ type SortConfig = {
 export const DataTable: React.FC<DataTableProps> = ({ data, visibleColumns }) => {
     const [sortConfig, setSortConfig] = useState<SortConfig>(null);
 
-    // Always include Ticker and Long Name if they exist, plus visible columns
-    const fixedColumns = ['Ticker', 'Long Name'];
+    // Always include Ticker if it exists, plus visible columns
+    const fixedColumns = ['Ticker'];
     const allColumns = [...new Set([...fixedColumns, ...visibleColumns])].filter(col =>
         data.length > 0 ? col in data[0] || fixedColumns.includes(col) : true
     );
@@ -113,11 +113,11 @@ export const DataTable: React.FC<DataTableProps> = ({ data, visibleColumns }) =>
                         {/* Summary Rows - Average and Median */}
                         {data.length > 0 && (() => {
                             // Calculate averages and medians for numeric columns
-                            const averages: Record<string, any> = { Ticker: 'AVERAGE', 'Long Name': '' };
-                            const medians: Record<string, any> = { Ticker: 'MEDIAN', 'Long Name': '' };
+                            const averages: Record<string, any> = { Ticker: 'AVERAGE' };
+                            const medians: Record<string, any> = { Ticker: 'MEDIAN' };
 
                             allColumns.forEach(col => {
-                                if (col === 'Ticker' || col === 'Long Name') return;
+                                if (col === 'Ticker') return;
 
                                 const values = data
                                     .map(row => Number(row[col]))
@@ -142,7 +142,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, visibleColumns }) =>
                                     <tr className="bg-slate-800 font-medium border-b border-slate-700/50">
                                         {allColumns.map((col) => {
                                             const format = formatMap[col] || 'text';
-                                            const displayValue = col === 'Ticker' || col === 'Long Name'
+                                            const displayValue = col === 'Ticker'
                                                 ? averages[col]
                                                 : formatValue(averages[col] ?? '', format);
 
@@ -156,7 +156,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, visibleColumns }) =>
                                     <tr className="bg-slate-700/80 font-medium border-b-4 border-accent/30">
                                         {allColumns.map((col) => {
                                             const format = formatMap[col] || 'text';
-                                            const displayValue = col === 'Ticker' || col === 'Long Name'
+                                            const displayValue = col === 'Ticker'
                                                 ? medians[col]
                                                 : formatValue(medians[col] ?? '', format);
 

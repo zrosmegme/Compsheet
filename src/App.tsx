@@ -41,7 +41,7 @@ function App() {
 
   const columns = useMemo(() => {
     if (data.length === 0) return [];
-    return Object.keys(data[0]).filter(key => key !== 'Ticker' && key !== 'Long Name');
+    return Object.keys(data[0]).filter(key => key !== 'Ticker');
   }, [data]);
 
   // Save data to localStorage whenever it changes

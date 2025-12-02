@@ -25,7 +25,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onDataLoaded }) => {
                 const dataSheet = workbook.Sheets[dataSheetName];
                 // The Excel file structure:
                 // Row 0: Column numbers (1, 2, 3...)
-                // Row 1: Actual headers ("Ticker", "Long Name"...)
+                // Row 1: Actual headers ("Ticker" required, other columns optional)
                 // Row 2+: Data rows
                 const rawData = XLSX.utils.sheet_to_json(dataSheet, { header: 1, defval: '' });
 
