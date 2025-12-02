@@ -8,6 +8,7 @@ import { Search, Loader2, Plus, X, Eye, EyeOff, ArrowUp, ArrowDown, ArrowUpDown 
 import { FilterBar } from '../components/FilterBar';
 import type { DataRow, Criterion } from '../types';
 import { DEFAULT_COLUMNS } from '../lib/constants';
+import { createFormatMap, formatValue } from '../lib/formatUtils';
 
 interface AnalysisPageProps {
     data: DataRow[];
@@ -205,6 +206,9 @@ export function AnalysisPage({
         return ['Ticker', ...Array.from(new Set([...DEFAULT_COLUMNS, ...criteriaColumns]))];
     }, [criteria]);
 
+    // Create format map for all columns (same as DataTable)
+    const formatMap = useMemo(() => createFormatMap(data), [data]);
+
     // Calculate summary rows ONLY from comparable companies (not including selected ticker)
     const summaryRows = useMemo(() => {
         if (comparableRows.length === 0 || visibleColumns.length === 0) return null;
@@ -233,56 +237,6 @@ export function AnalysisPage({
 
         return { averages, medians };
     }, [comparableRows, visibleColumns]);
-
-    const formatValue = (val: any, columnName?: string) => {
-        if (val === null || val === undefined || val === '') return '-';
-
-        // Handle non-numeric values
-        if (typeof val !== 'number' && isNaN(Number(val))) {
-            return val;
-        }
-
-        const numVal = typeof val === 'number' ? val : Number(val);
-
-        // Helper for thousand separators with fixed decimals
-        const fmt = (n: number, d: number = 1) => n.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
-
-        // If we have a column name, format based on the column type
-        if (columnName) {
-            // Revenue columns - format as currency
-            if (columnName.includes('Revenue') || columnName.includes('Market Cap')) {
-                // If it's a growth column, skip this block and go to percentage
-                if (!columnName.includes('Growth')) {
-                    // If value is huge (> 1B), it's raw units -> format as B/M
-                    if (numVal >= 1e9) return `$${fmt(numVal / 1e9)}B`;
-                    if (numVal >= 1e6) return `$${fmt(numVal / 1e6)}M`;
-
-                    // If value is "small" (e.g. 989), it's likely ALREADY in Millions
-                    return `$${fmt(numVal)}M`;
-                }
-            }
-
-            // Growth and Margin columns - format as percentage
-            if (columnName.includes('Growth') || columnName.includes('Margin')) {
-                return `${fmt(numVal * 100)}%`;
-            }
-
-            // EV multiples - format as multiples
-            if (columnName.includes('EV/')) {
-                return `${fmt(numVal)}x`;
-            }
-
-            // Default formatting if columnName was provided but no specific rule matched
-            if (numVal > 1000000) return fmt(numVal / 1000000) + 'M';
-            if (numVal > 1000) return fmt(numVal / 1000) + 'k';
-            return fmt(numVal);
-        }
-
-        // Fallback for generic numbers if no column name or no specific rule applied
-        if (numVal > 1000000) return (numVal / 1000000).toFixed(1) + 'M';
-        if (numVal > 1000) return (numVal / 1000).toFixed(1) + 'k';
-        return numVal.toFixed(1);
-    };
 
     // Sorting State
     const [sortConfig, setSortConfig] = useState<{ column: string; direction: 'asc' | 'desc' } | null>(null);
@@ -599,7 +553,7 @@ export function AnalysisPage({
                                         <tr className="bg-accent/10 border-b-2 border-accent/30">
                                             {visibleColumns.map(col => (
                                                 <td key={col} className="px-6 py-4 whitespace-nowrap text-white font-medium">
-                                                    {formatValue(selectedCompanyRow[col], col)}
+                                                    {formatValue(selectedCompanyRow[col], formatMap[col] || 'text')}
                                                 </td>
                                             ))}
                                         </tr>
@@ -611,14 +565,14 @@ export function AnalysisPage({
                                             <tr className="bg-slate-800/50 font-medium border-b border-slate-700">
                                                 {visibleColumns.map(col => (
                                                     <td key={col} className="px-6 py-4 whitespace-nowrap text-emerald-400">
-                                                        {col === 'Ticker' ? 'AVERAGE' : formatValue(summaryRows.averages[col] ?? '', col)}
+                                                        {col === 'Ticker' ? 'AVERAGE' : formatValue(summaryRows.averages[col] ?? '', formatMap[col] || 'text')}
                                                     </td>
                                                 ))}
                                             </tr>
                                             <tr className="bg-slate-800/50 font-medium border-b-2 border-slate-700">
                                                 {visibleColumns.map(col => (
                                                     <td key={col} className="px-6 py-4 whitespace-nowrap text-emerald-400">
-                                                        {col === 'Ticker' ? 'MEDIAN' : formatValue(summaryRows.medians[col] ?? '', col)}
+                                                        {col === 'Ticker' ? 'MEDIAN' : formatValue(summaryRows.medians[col] ?? '', formatMap[col] || 'text')}
                                                     </td>
                                                 ))}
                                             </tr>
@@ -630,7 +584,7 @@ export function AnalysisPage({
                                         <tr key={i} className="hover:bg-slate-800/30 transition-colors">
                                             {visibleColumns.map(col => (
                                                 <td key={col} className="px-6 py-4 whitespace-nowrap text-slate-300">
-                                                    {formatValue(row[col], col)}
+                                                    {formatValue(row[col], formatMap[col] || 'text')}
                                                 </td>
                                             ))}
                                         </tr>
